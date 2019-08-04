@@ -24,6 +24,16 @@ public class Mailer: MailerService {
     public struct User {
         public let name: String?
         public let email: String
+        
+        ///  Initializes a `User`.
+        ///
+        /// - Parameters:
+        ///     - name: The user's name that is displayed in an email. Optional.
+        ///     - email: The user's email address.
+        public init(name: String? = nil, email: String) {
+            self.name = name
+            self.email = email
+        }
     }
     
     /// Basic message
