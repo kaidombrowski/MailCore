@@ -35,7 +35,7 @@ extension Mailer.Message {
 
         let message = SendGridEmail(
             personalizations: [Personalization(to: [EmailAddress(email: to)])],
-            from: EmailAddress(email: from),
+            from: EmailAddress(email: from.email, name: from.name),
             subject: subject,
             content: content)
 

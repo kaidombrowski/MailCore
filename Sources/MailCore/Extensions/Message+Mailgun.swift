@@ -15,7 +15,7 @@ extension Mailer.Message {
     /// Message as a Mailgun content
     func asMailgunContent() -> Mailgun.Message {
         return Mailgun.Message(
-            from: from,
+            from: from.email,
             to: to,
             cc: cc?.joined(separator: ","),
             bcc: bcc?.joined(separator: ","),

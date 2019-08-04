@@ -14,7 +14,7 @@ extension Mailer.Message {
     
     /// Message as an SMTP email
     func asSmtpMail() -> Mail {
-        let fromUser = Mail.User(email: from)
+        let fromUser = Mail.User(name: from.name, email: from.email)
         
         let toUser = Mail.User(email: to)
         let ccUsers = (cc ?? []).map({ Mail.User(email: $0) })

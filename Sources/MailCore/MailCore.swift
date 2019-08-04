@@ -21,9 +21,14 @@ public protocol MailerService: Service {
 /// Mailer class
 public class Mailer: MailerService {
     
+    public struct User {
+        public let name: String?
+        public let email: String
+    }
+    
     /// Basic message
     public struct Message {
-        public let from: String
+        public let from: User
         public let to: String
         public let cc: [String]?
         public let bcc: [String]?
@@ -32,7 +37,7 @@ public class Mailer: MailerService {
         public let html: String?
         
         /// Message init
-        public init(from: String, to: String, cc: [String]? = nil, bcc: [String]? = nil, subject: String, text: String, html: String? = nil) {
+        public init(from: User, to: String, cc: [String]? = nil, bcc: [String]? = nil, subject: String, text: String, html: String? = nil) {
             self.from = from
             self.to = to
             self.cc = cc
