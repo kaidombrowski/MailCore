@@ -15,6 +15,7 @@ import SendGrid
 /// Emailing service
 public protocol MailerService: Service {
     func send(_ message: Mailer.Message, on req: Request) throws -> Future<Mailer.Result>
+    func send(_ messages: [Mailer.Message], on req: Request) throws -> Future<[(Mail, Mailer.Result)]>
 }
 
 
@@ -68,7 +69,7 @@ public class Mailer: MailerService {
     /// Service configuration
     public enum Config {
         case none
-        case mailgun(key: String, domain: String)
+        case mailgun(key: String, domain: String, region: Mailgun.Region)
         case sendGrid(key: String)
         case smtp(SMTP)
     }
@@ -84,8 +85,8 @@ public class Mailer: MailerService {
         self.config = config
         
         switch config {
-        case .mailgun(let key, let domain):
-            services.register(Mailgun(apiKey: key, domain: domain), as: Mailgun.self)
+        case .mailgun(let key, let domain, let region):
+            services.register(Mailgun(apiKey: key, domain: domain, region: region), as: Mailgun.self)
         case .sendGrid(key: let key):
             let config = SendGridConfig(apiKey: key)
             services.register(config)
@@ -102,12 +103,12 @@ public class Mailer: MailerService {
     /// Send a message using a provider defined in `config: Config`
     public func send(_ message: Message, on req: Request) throws -> Future<Mailer.Result> {
         switch config {
-        case .mailgun(_, _):
+        case .mailgun:
             let mailgunClient = try req.make(Mailgun.self)
             return try mailgunClient.send(message.asMailgunContent(), on: req).map(to: Mailer.Result.self) { _ in
                 return Mailer.Result.success
-                }.catchMap({ error in
-                    return Mailer.Result.failure(error: error)
+            }.catchMap({ error in
+                return Mailer.Result.failure(error: error)
                 }
             )
         case .sendGrid(_):
@@ -115,8 +116,8 @@ public class Mailer: MailerService {
             let sendGridClient = try req.make(SendGridClient.self)
             return try sendGridClient.send([email], on: req.eventLoop).map(to: Mailer.Result.self) { _ in
                 return Mailer.Result.success
-                }.catchMap({ error in
-                    return Mailer.Result.failure(error: error)
+            }.catchMap({ error in
+                return Mailer.Result.failure(error: error)
                 }
             )
         case .smtp(let smtp):
@@ -134,4 +135,23 @@ public class Mailer: MailerService {
         }
     }
     
+    /// Send multiple messages using a provider defined in `config: Config`
+    public func send(_ messages: [Message], on req: Request) throws -> Future<[(Mail, Mailer.Result)]> {
+        switch config {
+        case .mailgun:
+            throw Abort(.notImplemented, reason: "Sending mass email using Mailgun is not currently supported.")
+        case .sendGrid(_):
+            throw Abort(.notImplemented, reason: "Sending mass email using SendGrid is not currently supported.")
+        case .smtp(let smtp):
+            let promise = req.eventLoop.newPromise([(Mail, Mailer.Result)].self)
+            smtp.send(messages.map { $0.asSmtpMail() }, progress: nil) { mails, errors in
+                let errors = errors.map { ($0.0, Mailer.Result.failure(error: $0.1)) }
+                let successes = mails.map { ($0, Mailer.Result.success) }
+                promise.succeed(result: errors + successes)
+            }
+            return promise.futureResult
+        default:
+            throw Abort(.serviceUnavailable, reason: "Mails could not be sent: you need to configure your mail service.")
+        }
+    }
 }
