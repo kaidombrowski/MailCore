@@ -14,8 +14,16 @@ extension Mailer.Message {
     
     /// Message as a Mailgun content
     func asMailgunContent() -> Mailgun.Message {
+        let fromString: String
+        
+        if let name = from.name {
+            fromString = "\(name) <\(from.email)>"
+        } else {
+            fromString = from.email
+        }
+        
         return Mailgun.Message(
-            from: from.email,
+            from: fromString,
             to: to,
             cc: cc?.joined(separator: ","),
             bcc: bcc?.joined(separator: ","),
